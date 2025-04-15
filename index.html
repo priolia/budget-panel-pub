@@ -62,7 +62,34 @@
       'Рандомные': 11.6
     };
 
+    const keywordMap = {
+      'инвестиции': ['подарочки', 'на подарочки', 'на къща', 'ладелена безелюк'],
+      'еда и хозрасходы': ['мама моно новая', 'roksima eood', 'billa', 'metro', 'kaufland', 'грош', 'parkmart retail ood'],
+      'уход и лекарства': ['iherb', 'надя маникюр личн', 'аля ресницы бургас', 'afia infiniti eood', 'sopharma', 'medicines'],
+      'коммуналка и подписки': ['apple', 'google', 'evn elektrosnabdiavane', 'vivacom', 'lifecell'],
+      'психолог': ['катерина психолог']
+    };
+
     let transactions = [];
+
+    function categorize(description) {
+      const lowerDesc = description.toLowerCase();
+      for (const [category, keywords] of Object.entries(keywordMap)) {
+        for (const word of keywords) {
+          if (lowerDesc.includes(word)) {
+            return capitalizeCategory(category);
+          }
+        }
+      }
+      return null;
+    }
+
+    function capitalizeCategory(cat) {
+      for (const key in budgetPercents) {
+        if (key.toLowerCase() === cat.toLowerCase()) return key;
+      }
+      return cat;
+    }
 
     function setCurrency(cur) {
       currentCurrency = cur;
@@ -95,7 +122,11 @@
       transactions.forEach(tx => {
         const txDate = new Date(tx.date);
         if (txDate >= periodStart) {
-          const cat = tx.category || 'Рандомные';
+          let cat = tx.category?.trim();
+          if (!cat || !budgetPercents[cat]) {
+            cat = categorize(tx.description || '');
+          }
+          if (!cat || !budgetPercents[cat]) return;
           if (!grouped[cat]) grouped[cat] = 0;
           grouped[cat] += tx.amount;
         }
