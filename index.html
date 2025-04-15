@@ -134,10 +134,15 @@
     }
 
     async function loadData() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbytvX_MlDWiZmRvdaqmmoWw9FIX3EAWYuPBcmYHVhGwNynYFr5oIw1kfp33XvyIi3YHfw/exec");
-      transactions = await res.json();
-      await updateEuroRate();
-      updateBudget();
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbytvX_MlDWiZmRvdaqmmoWw9FIX3EAWYuPBcmYHVhGwNynYFr5oIw1kfp33XvyIi3YHfw/exec");
+        transactions = await res.json();
+        console.log("Загружены транзакции:", transactions);
+        await updateEuroRate();
+        updateBudget();
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+      }
     }
 
     async function updateEuroRate() {
