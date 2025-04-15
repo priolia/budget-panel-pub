@@ -134,7 +134,7 @@
     }
 
     async function loadData() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwqCPNJzl3pkEe0RyB3cmNyKE1ZjsNGC3INmzOLd_fyjPt3hr2Z3r4gUar5mvqejtPYXg/exec");
+      const res = await fetch("https://script.google.com/macros/s/AKfycbygRAWfOjYFEzA44RcJQrbQ2xOjFpNWbPRdWysKZrjybyzNzOyhKbu_e7orrzpoHMyhqg/exec");
       transactions = await res.json();
       await updateEuroRate();
       updateBudget();
