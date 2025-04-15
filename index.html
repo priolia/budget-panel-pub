@@ -95,8 +95,9 @@
       transactions.forEach(tx => {
         const txDate = new Date(tx.date);
         if (txDate >= periodStart) {
-          if (!grouped[tx.category]) grouped[tx.category] = 0;
-          grouped[tx.category] += tx.amount;
+          const cat = tx.category || 'Рандомные';
+          if (!grouped[cat]) grouped[cat] = 0;
+          grouped[cat] += tx.amount;
         }
       });
 
@@ -136,7 +137,9 @@
     async function loadData() {
       try {
         const res = await fetch("https://script.google.com/macros/s/AKfycbytvX_MlDWiZmRvdaqmmoWw9FIX3EAWYuPBcmYHVhGwNynYFr5oIw1kfp33XvyIi3YHfw/exec");
-        transactions = await res.json();
+        const result = await res.json();
+        if (!Array.isArray(result)) throw new Error("Ожидался массив транзакций");
+        transactions = result;
         console.log("Загружены транзакции:", transactions);
         await updateEuroRate();
         updateBudget();
