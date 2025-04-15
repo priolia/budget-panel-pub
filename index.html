@@ -1,0 +1,158 @@
+<!-- Панель бюджета для GitHub Pages с мультивалютным отображением, динамическим курсом евро и процентами от дохода -->
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .bar { background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 10px; }
+    .bar-fill { height: 16px; background-color: #4caf50; border-radius: 8px; width: 0%; transition: width 0.8s ease; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    th { background-color: #f0f0f0; }
+    .sub { font-size: 0.85em; color: #666; }
+    .currency-switch, .income-input { margin: 12px 0; }
+    .currency-switch button { margin-right: 8px; padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <h2>Бюджетная панель (в евро, левах и гривнах)</h2>
+
+  <label for="startDate">С какого числа начинать месяц: </label>
+  <input type="number" id="startDate" min="1" max="31" value="26" onchange="updateBudget()">
+
+  <div class="income-input">
+    <label for="income">Месячный доход (€): </label>
+    <input type="number" id="income" value="2800" onchange="updateBudget()">
+  </div>
+
+  <div class="currency-switch">
+    <strong>Валюта:</strong>
+    <button onclick="setCurrency('eur')">€</button>
+    <button onclick="setCurrency('bgn')">BGN</button>
+    <button onclick="setCurrency('uah')">UAH</button>
+  </div>
+
+  <table id="budgetTable">
+    <thead>
+      <tr>
+        <th>Категория</th>
+        <th>План</th>
+        <th>Факт</th>
+        <th>Освоено</th>
+        <th>Прогресс</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    let EUR_TO_UAH = 43.22;
+    const EUR_TO_BGN = 1.92;
+    let currentCurrency = 'eur';
+
+    const budgetPercents = {
+      'Аренда жилья': 13.6,
+      'Налоги': 5.0,
+      'Еда и хозрасходы': 20.0,
+      'Психолог': 6.0,
+      'Коммуналка и подписки': 13.0,
+      'Кот': 4.0,
+      'Инвестиции': 6.6,
+      'Уход и лекарства': 20.2,
+      'Рандомные': 11.6
+    };
+
+    let transactions = [];
+
+    function setCurrency(cur) {
+      currentCurrency = cur;
+      updateBudget();
+    }
+
+    function getPeriodStartDate(day) {
+      const now = new Date();
+      let year = now.getFullYear();
+      let month = now.getMonth();
+      if (now.getDate() < day) {
+        month = month === 0 ? 11 : month - 1;
+        if (month === 11) year -= 1;
+      }
+      return new Date(year, month, day);
+    }
+
+    function formatCurrency(value, currency) {
+      return currency === 'uah' ? `${Math.round(value * EUR_TO_UAH)} грн`
+           : currency === 'bgn' ? `${Math.round(value * EUR_TO_BGN)} лв`
+           : `${value.toFixed(2)} €`;
+    }
+
+    function updateBudget() {
+      const startDay = parseInt(document.getElementById('startDate').value);
+      const income = parseFloat(document.getElementById('income').value);
+      const periodStart = getPeriodStartDate(startDay);
+
+      const grouped = {};
+      transactions.forEach(tx => {
+        const txDate = new Date(tx.date);
+        if (txDate >= periodStart) {
+          if (!grouped[tx.category]) grouped[tx.category] = 0;
+          grouped[tx.category] += tx.amount;
+        }
+      });
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      Object.entries(budgetPercents).forEach(([category, percentOfIncome]) => {
+        const planEur = (income * percentOfIncome) / 100;
+        const factUah = grouped[category] || 0;
+        const factEur = factUah / EUR_TO_UAH;
+        const factDisplay =
+          currentCurrency === 'eur' ? factEur
+          : currentCurrency === 'uah' ? factEur * EUR_TO_UAH
+          : factEur * EUR_TO_BGN;
+        const planDisplay =
+          currentCurrency === 'eur' ? planEur
+          : currentCurrency === 'uah' ? planEur * EUR_TO_UAH
+          : planEur * EUR_TO_BGN;
+
+        const percent = Math.min(100, (factEur / planEur) * 100);
+
+        const row = `<tr>
+          <td>${category}</td>
+          <td>${formatCurrency(planEur, currentCurrency)}</td>
+          <td>${formatCurrency(factEur, currentCurrency)}</td>
+          <td>${percent.toFixed(0)}%</td>
+          <td>
+            <div class="bar">
+              <div class="bar-fill" style="width: ${percent}%;"></div>
+            </div>
+          </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+
+    async function loadData() {
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwqCPNJzl3pkEe0RyB3cmNyKE1ZjsNGC3INmzOLd_fyjPt3hr2Z3r4gUar5mvqejtPYXg/exec");
+      transactions = await res.json();
+      await updateEuroRate();
+      updateBudget();
+    }
+
+    async function updateEuroRate() {
+      try {
+        const res = await fetch("https://api.exchangerate.host/latest?base=EUR&symbols=UAH");
+        const data = await res.json();
+        if (data && data.rates && data.rates.UAH) {
+          EUR_TO_UAH = data.rates.UAH;
+        }
+      } catch (e) {
+        console.warn("Не удалось обновить курс EUR-UAH, используем старый:", EUR_TO_UAH);
+      }
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>
