@@ -62,34 +62,13 @@
       'Рандомные': 11.6
     };
 
-    const keywordMap = {
-      'инвестиции': ['подарочки', 'на подарочки', 'на къща', 'ладелена безелюк'],
-      'еда и хозрасходы': ['мама моно новая', 'roksima eood', 'billa', 'metro', 'kaufland', 'грош', 'parkmart retail ood'],
-      'уход и лекарства': ['iherb', 'надя маникюр личн', 'аля ресницы бургас', 'afia infiniti eood', 'sopharma', 'medicines'],
-      'коммуналка и подписки': ['apple', 'google', 'evn elektrosnabdiavane', 'vivacom', 'lifecell'],
-      'психолог': ['катерина психолог']
-    };
-
-    let transactions = [];
-
-    function categorize(description) {
-      const lowerDesc = description.toLowerCase();
-      for (const [category, keywords] of Object.entries(keywordMap)) {
-        for (const word of keywords) {
-          if (lowerDesc.includes(word)) {
-            return capitalizeCategory(category);
-          }
-        }
-      }
-      return null;
-    }
-
-    function capitalizeCategory(cat) {
-      for (const key in budgetPercents) {
-        if (key.toLowerCase() === cat.toLowerCase()) return key;
-      }
-      return cat;
-    }
+    const keywordsMap = [
+      ['Инвестиции', ['подарочки', 'на къща', 'ладелена']],
+      ['Еда и хозрасходы', ['billa', 'kaufland', 'metro', 'grosh', 'roksima', 'parkmart']],
+      ['Уход и лекарства', ['iherb', 'маникюр', 'ресниц', 'afia', 'sopharma', 'medicines']],
+      ['Коммуналка и подписки', ['apple', 'google', 'evn', 'vivacom', 'lifecell']],
+      ['Психолог', ['катерина психолог']]
+    ];
 
     function setCurrency(cur) {
       currentCurrency = cur;
@@ -113,6 +92,14 @@
            : `${value.toFixed(2)} €`;
     }
 
+    function matchCategory(description) {
+      const desc = description.toLowerCase();
+      for (let [category, keywords] of keywordsMap) {
+        if (keywords.some(k => desc.includes(k))) return category;
+      }
+      return '';
+    }
+
     function updateBudget() {
       const startDay = parseInt(document.getElementById('startDate').value);
       const income = parseFloat(document.getElementById('income').value);
@@ -123,10 +110,8 @@
         const txDate = new Date(tx.date);
         if (txDate >= periodStart) {
           let cat = tx.category?.trim();
-          if (!cat || !budgetPercents[cat]) {
-            cat = categorize(tx.description || '');
-          }
-          if (!cat || !budgetPercents[cat]) return;
+          if (!cat) cat = matchCategory(tx.description || '');
+          if (!budgetPercents[cat]) return;
           if (!grouped[cat]) grouped[cat] = 0;
           grouped[cat] += tx.amount;
         }
