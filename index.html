@@ -50,6 +50,14 @@
     const EUR_TO_BGN = 1.92;
     let currentCurrency = 'eur';
 
+    const keywordCategories = [
+      { keywords: ["На подарочки", "На къща", "Округлення балансу"], category: "Инвестиции" },
+      { keywords: ["мама моно новая", "ROKSIMA EOOD", "Billa", "Metro", "kAufland", "ГРОШ", "PARKMART RETAIL OOD"], category: "Еда и хозрасходы" },
+      { keywords: ["iHerb", "Надя Маникюр Личн", "Аля ресницы бургас", "AFIA INFINITI EOOD", "SOPharma", "MEDICINES"], category: "Уход и лекарства" },
+      { keywords: ["Apple", "google", "EVN ELEKTROSNABDIAVANE", "VIVACOM", "lifecell"], category: "Коммуналка и подписки" },
+      { keywords: ["катерина психолог"], category: "Психолог" }
+    ];
+
     const budgetPercents = {
       'Аренда жилья': 13.6,
       'Налоги': 5.0,
@@ -62,13 +70,7 @@
       'Рандомные': 11.6
     };
 
-    const keywordsMap = [
-      ['Инвестиции', ['подарочки', 'на къща', 'ладелена']],
-      ['Еда и хозрасходы', ['billa', 'kaufland', 'metro', 'grosh', 'roksima', 'parkmart']],
-      ['Уход и лекарства', ['iherb', 'маникюр', 'ресниц', 'afia', 'sopharma', 'medicines']],
-      ['Коммуналка и подписки', ['apple', 'google', 'evn', 'vivacom', 'lifecell']],
-      ['Психолог', ['катерина психолог']]
-    ];
+    let transactions = [];
 
     function setCurrency(cur) {
       currentCurrency = cur;
@@ -92,12 +94,15 @@
            : `${value.toFixed(2)} €`;
     }
 
-    function matchCategory(description) {
-      const desc = description.toLowerCase();
-      for (let [category, keywords] of keywordsMap) {
-        if (keywords.some(k => desc.includes(k))) return category;
+    function categorize(tx) {
+      for (let group of keywordCategories) {
+        for (let keyword of group.keywords) {
+          if (tx.description?.toLowerCase().includes(keyword.toLowerCase())) {
+            return group.category;
+          }
+        }
       }
-      return '';
+      return tx.category || 'Без категории';
     }
 
     function updateBudget() {
@@ -109,11 +114,10 @@
       transactions.forEach(tx => {
         const txDate = new Date(tx.date);
         if (txDate >= periodStart) {
-          let cat = tx.category?.trim();
-          if (!cat) cat = matchCategory(tx.description || '');
-          if (!budgetPercents[cat]) return;
-          if (!grouped[cat]) grouped[cat] = 0;
-          grouped[cat] += tx.amount;
+          const category = categorize(tx);
+          if (!budgetPercents[category]) return;
+          if (!grouped[category]) grouped[category] = 0;
+          grouped[category] += tx.amount;
         }
       });
 
